@@ -1,0 +1,12 @@
+{
+    "cmake.sourceDirectory": "/home/sam/esp/get-start/kaiyuan/blufi_test",
+    "files.associations": {
+        "string.h": "c",
+        "blufi_example.h": "c",
+        "stdio.h": "c",
+        "typeinfo": "c",
+        "mqtt.h": "c"
+    },
+
+
+}

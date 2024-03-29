@@ -1,0 +1,375 @@
+
+// #include "main.h"
+#include "mqtt.h"
+#include "bsp_gpio.h"
+#include "dht11.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+#include "ui.h"
+#include <stdbool.h>
+
+static const char *TAG = "mqtt";
+// esp_mqtt_client_handle_t client;
+bool mqtt_connected = false;
+SemaphoreHandle_t global_message_mutex = NULL;
+// 在mqtt.c文件中定义一个用于存储上一次消息的变量
+char *last_global_message = NULL;
+
+static void log_error_if_nonzero(const char *message, int error_code);
+
+void publish_tem_hum_task(void *pvParameters) {
+  // ESP_LOGI(TAG, "task_global_message_in_button_event: %s", global_message);
+
+  // esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t) pvParameters;
+  esp_mqtt_client_handle_t client = NULL; // 初始化 MQTT 客户端句柄
+  // char tempStr[10];
+  // char humiStr[10];
+  // static uint8_t lastTemp = 0;
+  // static uint8_t lastHumi = 0;
+
+  // 等待MQTT客户端连接到服务器
+  while (!mqtt_connected) {
+    ESP_LOGI(TAG, "Waiting for MQTT connection...");
+    vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
+  }
+  ESP_LOGI(TAG, "MQTT connected, starting data publishing...");
+  char msg[100];
+  while (1) {
+    /*
+    DHT11_Start();
+    if(DHT11_ReadTemHum(DHT11Data))
+    {
+        Temp = DHT11Data[2];
+        Humi = DHT11Data[0];
+
+        // 如果温度或湿度有变化，就发布新的值
+        if(Temp != lastTemp || Humi != lastHumi)
+        {
+            lastTemp = Temp;
+            lastHumi = Humi;
+            // snprintf(tempStr, sizeof(tempStr), "%d", Temp); //
+    将温度转换为字符串
+            // snprintf(humiStr, sizeof(humiStr), "%d", Humi); //
+    将湿度转换为字符串
+
+            sprintf(msg, "Temperature: %d C, Humidity: %d %%", Temp, Humi);
+
+            // 发布温度和湿度数据
+            esp_mqtt_client_publish(client, "/topic/t_h", msg, 0, 0, 0);
+            // esp_mqtt_client_publish(client, "/topic/temperature", tempStr, 0,
+    1, 0);
+            // esp_mqtt_client_publish(client, "/topic/humidity", humiStr, 0, 1,
+    0);
+        }
+    }
+    else
+    {
+        // led_status();
+        printf("Failed to read from DHT11 sensor\n");
+    }
+    vTaskDelay(5000 / portTICK_PERIOD_MS); // 每5秒读取并发布一次
+    */
+    // char msg[50];
+
+    // 使用互斥锁保护global_message的访问
+    /*
+    if (xSemaphoreTake(global_message_mutex, portMAX_DELAY) == pdTRUE) {
+        // 检查global_message和last_global_message是否是NULL
+        if (global_message != NULL && last_global_message != NULL) {
+            if (strcmp(global_message, last_global_message) != 0) {
+                //
+    如果global_message的内容发生变化，更新last_global_message并发送新的global_message
+                free(last_global_message); // 释放旧的内存
+                last_global_message = strdup(global_message);
+                ESP_LOGI(TAG, "global_message_mqtt_task: %s", global_message);
+                esp_mqtt_client_publish(client, "/topic/global_message",
+    global_message, 0, 0, 1);
+            }
+        }
+        xSemaphoreGive(global_message_mutex);
+    }*/
+
+    struct dht11_reading last_reading = {0, 0, 0};
+
+    while (1) {
+
+      if (xSemaphoreTake(global_message_mutex, portMAX_DELAY) == pdTRUE) {
+        // 检查global_message和last_global_message是否是NULL
+        if (global_message != NULL && last_global_message != NULL) {
+          ESP_LOGI(TAG, "global_message_if: %s", global_message);
+          if (strcmp(global_message, last_global_message) != 0) {
+            // 如果global_message的内容发生变化，更新last_global_message并发送新的global_message
+            free(last_global_message); // 释放旧的内存
+            last_global_message = strdup(global_message);
+            ESP_LOGI(TAG, "global_message_mqtt_task: %s", global_message);
+            esp_mqtt_client_publish(client, "/topic/global_message",
+                                    global_message, 0, 0, 1);
+          }
+        }
+        xSemaphoreGive(global_message_mutex);
+      }
+
+      // if (xSemaphoreTake(global_message_mutex, 0) == pdTRUE) {
+      /*if (global_message != NULL) {
+        // 在获取到互斥锁后设置 global_message 的值
+        // global_message = button_state ? (char *)message1 : (char *)message2;
+        ESP_LOGI(TAG, "global_message_mqtt_99");
+        if (strcmp(global_message, last_global_message) != 0) {
+          // 如果global_message的内容发生变化，更新last_global_message并发送新的global_message
+          free(last_global_message); // 释放旧的内存
+          last_global_message = strdup(global_message);
+          ESP_LOGI(TAG, "global_message_mqtt_task: %s", global_message);
+          esp_mqtt_client_publish(client, "/topic/global_message",
+                                  global_message, 0, 0, 1);
+        }
+      }*/
+      // xSemaphoreGive(global_message_mutex);
+      // }
+
+      if (global_message != NULL) {
+        // if (strcmp(global_message, last_global_message) != 0) {
+        // free(last_global_message);
+        // last_global_message = strdup(global_message);
+        // 等待MQTT客户端连接到服务器
+        if (client != NULL) {
+          ESP_LOGI(TAG, "global_message_mqtt_task: %s", global_message);
+          esp_mqtt_client_publish(client, "/topic/global_message",
+                                  global_message, 0, 0, 1);
+        } else {
+          // 配置 MQTT 客户端参数
+          esp_mqtt_client_config_t mqtt_cfg = {
+              .broker.address.uri = "mqtt://broker-cn.emqx.io",
+              .broker.address.port = 1883,
+              // 其他参数...
+          };
+
+          // 创建 MQTT 客户端实例
+          client = esp_mqtt_client_init(&mqtt_cfg);
+          if (client == NULL) {
+            ESP_LOGE(TAG, "Failed to initialize MQTT client!");
+            vTaskDelete(NULL); // 任务无法继续，删除任务
+          }
+
+          // 启动 MQTT 客户端
+          esp_err_t err = esp_mqtt_client_start(client);
+          esp_mqtt_client_publish(client, "/topic/global_message",
+                                  "GG", 0, 0, 1);
+          if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start MQTT client! Error code: %d", err);
+            esp_mqtt_client_destroy(client); // 销毁 MQTT 客户端实例
+            vTaskDelete(NULL); // 任务无法继续，删除任务
+          }
+        }
+      }
+
+      struct dht11_reading reading = DHT11_read();
+      // if(reading.status == DHT11_OK && (reading.temperature !=
+      // last_reading.temperature || reading.humidity != last_reading.humidity))
+      // {
+      // 如果温度为44，湿度为122，则忽略这个值
+      if (reading.temperature > 40 || reading.humidity > 100)
+      // if(reading.temperature == 40 && reading.humidity == 100)
+      {
+        ESP_LOGI(TAG, "DHT11_ReadError");
+        continue;
+      }
+      last_reading = reading;
+      snprintf(msg, sizeof(msg), "Temperature: %d C, Humidity: %d %%",
+               reading.temperature, reading.humidity);
+
+      // 等待MQTT客户端连接到服务器
+      while (!mqtt_connected) {
+        vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
+      }
+
+      // 发布温度和湿度数据
+      esp_mqtt_client_publish(client, "/topic/t_h", "ono", 0, 0, 1);
+    //   led_status();
+      // }
+      vTaskDelay(5000 / portTICK_PERIOD_MS); // 每5秒读取并发布一次
+    }
+  }
+}
+
+void reset_wifi() {
+  // 停止MQTT连接（如果正在连接）
+  esp_mqtt_client_stop(client);
+
+  esp_wifi_disconnect(); // 停止WiFi连接
+  erase_wifi_config();
+  wifi_config_t wifi_config = {
+      .sta =
+          {
+              .ssid = "",
+              .password = "",
+          },
+  };
+  esp_err_t wifi_config_msg = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+  if (wifi_config_msg != ESP_OK) {
+    ESP_LOGI(TAG, "wifi_config_msg !=esp_OK");
+  }
+  // erase_wifi_config();
+
+  ESP_LOGI(TAG, "flash data init OK");
+
+  // 重新启动设备
+  esp_restart();
+}
+
+void get_mac_address(char *mac_addr) {
+  uint8_t mac[6];
+  esp_wifi_get_mac(WIFI_IF_STA, mac); // 获取STA模式的MAC地址
+
+  sprintf(mac_addr, "2shFQFP5hpmPHYSr_%02X%02X%02X%02X%02X%02X_esp", mac[0],
+          mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+void erase_wifi_config() {
+  nvs_handle_t my_handle;
+  esp_err_t err;
+
+  // 初始化NVS
+  err = nvs_flash_init();
+  if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+      err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    // NVS分区被损坏，需要擦除整个分区
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    err = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(err);
+
+  // 打开NVS
+  err = nvs_open("storage", NVS_READWRITE, &my_handle);
+  if (err != ESP_OK) {
+    printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+  } else {
+    // 擦除"ssid"和"password"
+    err = nvs_erase_key(my_handle, "ssid");
+    if (err != ESP_OK) {
+      printf("Error (%s) erasing NVS ssid!\n", esp_err_to_name(err));
+    }
+    err = nvs_erase_key(my_handle, "password");
+    if (err != ESP_OK) {
+      printf("Error (%s) erasing NVS password!\n", esp_err_to_name(err));
+    }
+    // 提交NVS
+    nvs_commit(my_handle);
+
+    // 关闭NVS
+    nvs_close(my_handle);
+  }
+}
+
+/*
+*********************************************************************************************************
+*	函 数 名: mqtt_event_handler_cb
+*	功能说明: mqtt事件回调
+*	形    参：socket
+*	返 回 值: 无
+*********************************************************************************************************
+*/
+
+void mqtt_event_handler(void *handler_args, esp_event_base_t base,
+                        int32_t event_id, void *event_data) {
+  ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base,
+           event_id);
+  esp_mqtt_event_handle_t event = event_data;
+  // esp_mqtt_client_handle_t client = event->client;
+  int msg_id = 0;
+  switch ((esp_mqtt_event_id_t)event_id) {
+  case MQTT_EVENT_CONNECTED:
+    mqtt_connected = true;
+    led_status();
+    ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+    msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 1);
+
+    ESP_LOGI(TAG, "sent publish successful, msg_id=%d/n", msg_id);
+
+    msg_id = esp_mqtt_client_subscribe(client, "/iot/2742/de", 0);
+    ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
+
+    msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
+    ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
+    msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
+    ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d/n", msg_id);
+    // msg_id = esp_mqtt_client_subscribe(client, "/topic/t_h", 0);
+    // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
+    // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 1024 * 8,
+                // (void *)client, 5, NULL);
+    break;
+  case MQTT_EVENT_DISCONNECTED:
+    mqtt_connected = false;
+    led_off();
+    esp_mqtt_client_start(client); // 尝试重新连接
+    ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+    break;
+  case MQTT_EVENT_SUBSCRIBED:
+    ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+    msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", "data", 0, 0, 0);
+
+    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+    break;
+  case MQTT_EVENT_UNSUBSCRIBED:
+    ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+    break;
+  case MQTT_EVENT_PUBLISHED:
+    ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+    led_status();
+    break;
+  case MQTT_EVENT_DATA:
+    ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+    printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+    printf("DATA=%.*s\r\n", event->data_len, event->data);
+    // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048,
+    // (void*)client, 5, NULL); xTaskCreate(dht11_task, "dht11_task", 2048,
+    // (void*)client, 5, NULL);
+    // 控制LED
+    if (memcmp(event->data, "On", event->data_len) == 0) {
+      led_on();
+    } else if (memcmp(event->data, "Off", event->data_len) == 0) {
+      led_off();
+    } else if (memcmp(event->data, "clean", event->data_len) == 0) {
+      reset_wifi(); // 重置wifi
+    } else if (memcmp(event->data, "data_3", event->data_len) == 0) {
+      led_status();
+    }
+    // else if (strncmp(event->topic, "/topic/t_h", event->topic_len) == 0){
+    //     char* temp_value = malloc(event->data_len+1);
+    //     memcpy(temp_value, event->data, event->data_len);
+    //     temp_value[event->data_len] = '\0';
+    //     printf("Received data on /topic/t_h: %s\n", temp_value);
+    //     free(temp_value);
+    // }
+    break;
+  case MQTT_EVENT_ERROR:
+    ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+    if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+      log_error_if_nonzero("reported from esp-tls",
+                           event->error_handle->esp_tls_last_esp_err);
+      log_error_if_nonzero("reported from tls stack",
+                           event->error_handle->esp_tls_stack_err);
+      log_error_if_nonzero("captured as transport's socket errno",
+                           event->error_handle->esp_transport_sock_errno);
+      ESP_LOGI(TAG, "Last errno string (%s)",
+               strerror(event->error_handle->esp_transport_sock_errno));
+    }
+    break;
+  default:
+    ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+    break;
+  }
+}
+
+static void log_error_if_nonzero(const char *message, int error_code) {
+  if (error_code != 0) {
+    ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
+  }
+}
+/*
+*********************************************************************************************************
+*	函 数 名: mqtt_start
+*	功能说明: 启动mqtt
+*	形    参：无
+*	返 回 值: 无
+*********************************************************************************************************
+*/

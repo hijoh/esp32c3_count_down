@@ -10,6 +10,7 @@
 #ifndef __MQTT_H
 #define	__MQTT_H
 
+#include <stdbool.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,6 +38,12 @@ extern "C" {
 
 
 extern void mqtt_start(void);
+void erase_wifi_config();
+void Publisher_Task(void *params);
+extern esp_mqtt_client_handle_t client;
+extern bool mqtt_connected;
+void publish_tem_hum_task(void *pvParameters);
+
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,17 @@
         "blufi_example.h": "c",
         "stdio.h": "c",
         "typeinfo": "c",
-        "mqtt.h": "c"
+        "mqtt.h": "c",
+        "esp_blufi.h": "c",
+        "DHT11.C": "cpp",
+        "bsp_gpio.h": "c",
+        "D.C": "cpp",
+        "dht11.h": "c",
+        "lvgl.h": "c",
+        "ui.h": "c",
+        "gui_task.h": "c",
+        "ui_helpers.h": "c",
+        "hello_task.h": "c"
     },
 
 

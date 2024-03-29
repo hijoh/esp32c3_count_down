@@ -11,9 +11,11 @@ extern "C" {
 #include "esp_log.h"
 
 #define BLINK_GPIO 13
+// #define BLINK_GPIO 19
 void bsp_gpio_init(void);
 void led_on(void);
 void led_off(void);
+void led_status(void);
 #ifdef __cplusplus
 }
 #endif

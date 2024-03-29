@@ -1,6 +1,14 @@
-idf_component_register(SRCS "blufi_example_main.c"
+file(GLOB_RECURSE SOURCES_C *.c components/*.c fonts/*.c screens/*.c  esp_now/*.c)
+file(GLOB_RECURSE SOURCES_CPP *.cpp)
+
+idf_component_register(SRCS ${SOURCES_C} ${SOURCES_CPP} 
+                            "main.c"
                             "blufi_security.c"
                             "blufi_init.c"
                             "mqtt.c"
                             "bsp_gpio.c"
-                    INCLUDE_DIRS ".")
+                            "dht11.c" "hello_task.c"
+                    INCLUDE_DIRS "." "components" "fonts"  "screens" "esp_gui" )
+
+target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_HOR_RES_MAX=320")
+target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_VER_RES_MAX=240")

@@ -12,8 +12,10 @@
 *********************************************************************************************************
 */
 #include "bsp_gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-static const char *TAG = "bsp_gpio";
+static const char *TAG = "bsp_gpio_led_status";
 /*
 *********************************************************************************************************
 *	函 数 名: bsp_gpio_init
@@ -38,7 +40,7 @@ void bsp_gpio_init(void)
 void led_on(void)
 {
    ESP_LOGI(TAG, "led on");
-   gpio_set_level(BLINK_GPIO, 0);
+   gpio_set_level(BLINK_GPIO, 1);
 }
 /*
 *********************************************************************************************************
@@ -50,6 +52,23 @@ void led_on(void)
 */
 void led_off(void)
 {
-   ESP_LOGI(TAG, "led off");
+   ESP_LOGI(TAG, "led off or MQTT disconnected");
+   gpio_set_level(BLINK_GPIO, 0);
+}
+
+void led_status(void)
+{
+   ESP_LOGI(TAG, "led status or MQTT published sucssfull");
+   for (int i = 0; i < 3; i++)
+   // while (1)
+   {        
    gpio_set_level(BLINK_GPIO, 1);
+   //  ESP_LOGI(TAG, "led on");
+   vTaskDelay(pdMS_TO_TICKS(200));
+   gpio_set_level(BLINK_GPIO, 0);
+   //  ESP_LOGI(TAG, "led off");
+   vTaskDelay(pdMS_TO_TICKS(200));
+   }
+
+
 }

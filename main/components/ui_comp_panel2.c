@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include "cJSON.h"
 // #include "nvs_flash.h"
 // #include "esp_event.h"
 // #include "esp_netif.h"
@@ -53,29 +53,28 @@ typedef enum
 
 MessageMode current_modes[NUM_MODES] = {MODE_A1, MODE_B1, MODE_C1};
 
-void button_event_cb(lv_event_t *event, MessageMode mode, const char *msg1, const char *msg2)
+void button_event_cb(lv_event_t *event, MessageMode mode, int msg1, int msg2)
 {
-  // void button_event_cb(lv_event_t *event, MessageMode mode, const char
-  // *message1, const char *message2)
-  // {
   if (event->code == LV_EVENT_VALUE_CHANGED)
   {
-    // lv_obj_t * obj = lv_event_get_target(event);
-    // bool state = lv_obj_get_state(obj) & LV_STATE_CHECKED;
-    // global_message = state ? message1 : message2;
-    // button_state = state;
-    // message1 = msg1;
-    // message2 = msg2;
-    // ESP_LOGI(TAG, "global_message_in_button_event: %s", global_message);
-    // // event1 = event;
     if (event->code == LV_EVENT_VALUE_CHANGED)
     {
       lv_obj_t *obj = lv_event_get_target(event);
       bool state = lv_obj_get_state(obj) & LV_STATE_CHECKED;
-      global_message = state ? msg1 : msg2;
-  
-      ESP_LOGI(TAG, "global_message_in_button_event: %s", global_message);
-      xTaskCreate(mqtt_publish_task, "mqtt_publish_task", 1024*5, (void*)global_message, 5, NULL);
+      // global_message = state ? msg1 : msg2;
+      // ESP_LOGI(TAG, "global_message_in_button_event: %s", global_message);
+      // xTaskCreate(mqtt_publish_task, "mqtt_publish_task", 1024*5, (void*)global_message, 5, NULL);
+      char json_message[50]; // 假设JSON消息不会超过50个字符
+
+      if(state) {
+        snprintf(json_message, sizeof(json_message), "{\"LED_CTR\": %d}", msg1);
+      } else {
+        snprintf(json_message, sizeof(json_message), "{\"LED_CTR\": %d}", msg2);
+      }
+
+      ESP_LOGI(TAG, "global_message_in_button_event: %s", json_message);
+      xTaskCreate(mqtt_publish_task, "mqtt_publish_task", 1024*5, (void*)json_message, 5, NULL);
+    
     }
   }
 }
@@ -85,7 +84,11 @@ void mqtt_publish_task(void *param)
     if(mqtt_connected)
     {
         // MQTT已连接，发送消息
-        int msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", message, 0, 1, 1);
+        // sprintf(topic, "/sys/openiitagateway01/%s/c/#",  user_id);
+        // sprintf(topic, "/openiitagateway01/%s/c/#",  user_id);
+        //根据MQTT规范，#和+这两个通配符只能在订阅主题时使用，不能在发布消息时使用
+        // int msg_id = esp_mqtt_client_publish(client, topic, message, 0, 0, 0);
+        int msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", message, 0, 0, 0);
         ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
     }
     else
@@ -96,164 +99,22 @@ void mqtt_publish_task(void *param)
     vTaskDelete(NULL); // 删除任务
 }
 
-/*
-void button_event_cb1(lv_event_t *e)
-{
-  lv_obj_t *obj = lv_event_get_target(e);
-  lv_event_code_t code = lv_event_get_code(e);
-
-  if (code == LV_EVENT_VALUE_CHANGED)
-  {
-     //获取按钮的当前状态 
-    bool state = lv_obj_get_state(obj) == LV_IMGBTN_STATE_CHECKED_RELEASED;
-
-     //创建MQTT任务 
-    xTaskCreate(
-        mqtt_task,     
-        "mqtt_task",   
-        1024 * 4,      
-        (void *)&state,
-        1,             
-        NULL           
-    );
-  }
-}
-
-void button_check_task(void *pvParameters)
-{
-  esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t)pvParameters;
-  while (!mqtt_connected1)
-  {
-    vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
-  }
-
-  while (1)
-  {
-    if (LV_EVENT_VALUE_CHANGED)
-    {
-      if (mqtt_connected1 && global_message != NULL)
-      {
-        esp_mqtt_client_publish(client, "/iot/2742/de", global_message, 0, 1,
-                                0);
-      }
-    }
-    vTaskDelay(
-        100 /
-        portTICK_PERIOD_MS); // 检查按键状态的频率，这里设置为每100ms检查一次
-
-    // if (some_condition) {
-    // break;}
-  }
-  // vTaskDelete(NULL)
-}
-
-void mqtt_event_handler_(void *handler_args, esp_event_base_t base,
-                         int32_t event_id, void *event_data)
-{
-  ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%ld", base,
-           event_id);
-  esp_mqtt_event_handle_t event = event_data;
-  // esp_mqtt_client_handle_t client = event->client;
-  int msg_id = 0;
-  switch ((esp_mqtt_event_id_t)event_id)
-  {
-  case MQTT_EVENT_CONNECTED:
-    mqtt_connected1 = true;
-    // xTaskCreate(&button_check_task, "button_check_task", 2048, NULL, 5,
-    // NULL);
-    ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED111");
-    break;
-  case MQTT_EVENT_DISCONNECTED:
-    mqtt_connected1 = false;
-
-    // esp_mqtt_client_start(client);// 尝试重新连接
-    ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-    break;
-  case MQTT_EVENT_SUBSCRIBED:
-    ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    break;
-  case MQTT_EVENT_UNSUBSCRIBED:
-    ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-    break;
-  case MQTT_EVENT_PUBLISHED:
-    ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-
-    break;
-  case MQTT_EVENT_DATA:
-    ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-    // if (global_message != NULL) {
-    // ESP_LOGI(TAG, "global_message_in_mqtt: %s", global_message);
-    // msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", global_message,
-    // 0, 1, 0);
-    // }
-    break;
-  case MQTT_EVENT_ERROR:
-    ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-
-    break;
-  default:
-    ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-    break;
-  }
-}
-
-static void button_event_handler(lv_event_t *e)
-{
-  lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn = lv_event_get_target(e);
-  if (code == LV_EVENT_VALUE_CHANGED)
-  {
-    uint32_t state = lv_obj_get_state(btn);
-    if (state == LV_IMGBTN_STATE_PRESSED)
-    {
-      // 按钮被按下，向MQTT服务器发送"ON"
-      int msg_id = esp_mqtt_client_publish(client, "/your_topic", "ON", 0, 1, 1);
-      ESP_LOGI(TAG, "sent publish successful, msg_id=%d/n", msg_id);
-    }
-  }
-}
-static void button_event_handler2(lv_event_t *e)
-{
-  lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn = lv_event_get_target(e);
-  if (code == LV_EVENT_VALUE_CHANGED)
-  {
-    uint32_t state = lv_obj_get_state(btn);
-    // if(state == LV_IMGBTN_STATE_PRESSED) {
-    //     // 按钮被按下，检查MQTT连接状态
-    //     if(mqtt_connected1) {
-    //         // 如果MQTT已连接，向MQTT服务器发送"ON"
-    //         esp_mqtt_client_handle_t client = NULL;
-    //         int msg_id = esp_mqtt_client_publish(client, "/your_topic", "ON", 0, 1, 1);
-    //         ESP_LOGI(TAG, "sent publish successful, msg_id=%d/n", msg_id);
-    //     } else {
-    //         // 如果MQTT未连接，打印错误消息
-    //         ESP_LOGE(TAG, "MQTT is not connected. Cannot send message.");
-    //     }
-    // }
-  }
-}
-*/
-
-
-
 static void button4_event_cb(lv_event_t *event)
 {
   ESP_LOGI(TAG, "button4");
-  button_event_cb(event, MODE_A1, "On", "Off");
+  button_event_cb(event, MODE_A1, 1, 0);
   // button_event_cb(event);
 }
 
 static void button2_event_cb(lv_event_t *event)
 {
   ESP_LOGI(TAG, "button2");
-  button_event_cb(event, MODE_B1, "On", "Off");
+  button_event_cb(event, MODE_B1, 1, 0);
 }
 static void button1_event_cb(lv_event_t *event)
 {
   ESP_LOGI(TAG, "button1");
-  button_event_cb(event, MODE_C1, "On", "Off");
+  button_event_cb(event, MODE_C1, 1, 0);
 }
 
 void ui_event_comp_Panel2_Button1(lv_event_t *e)
@@ -264,7 +125,7 @@ void ui_event_comp_Panel2_Button1(lv_event_t *e)
   if (event_code == LV_EVENT_CLICKED)
   {
     _ui_checked_set_text_value(comp_Panel2[UI_COMP_PANEL2_BUTTON1_LABEL1],
-                               target, "ON", "OFF");
+                               target, "1", "0");
   }
 }
 void ui_event_comp_Panel2_Button2(lv_event_t *e)
@@ -275,7 +136,7 @@ void ui_event_comp_Panel2_Button2(lv_event_t *e)
   if (event_code == LV_EVENT_CLICKED)
   {
     _ui_checked_set_text_value(comp_Panel2[UI_COMP_PANEL2_BUTTON2_LABEL3],
-                               target, "ON", "OFF");
+                               target, "1", "0");
   }
 }
 void ui_event_comp_Panel2_Button4(lv_event_t *e)

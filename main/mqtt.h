@@ -38,12 +38,17 @@ extern "C" {
 
 
 extern void mqtt_start(void);
-void erase_wifi_config();
+static void erase_wifi_config();
 void Publisher_Task(void *params);
 extern esp_mqtt_client_handle_t client;
 extern bool mqtt_connected;
 void publish_tem_hum_task(void *pvParameters);
-
+static void generate_md5_hash(char *input, char output[33]);
+static void generate_device_hash(char *device_id, char output[33]);
+void publish_tem_hum_task(void *pvParameters);
+void get_mac_address(char *mac_addr);
+extern char topic[];
+extern char user_id[];
 
 #ifdef __cplusplus
 }

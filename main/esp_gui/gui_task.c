@@ -19,7 +19,7 @@ static void lv_tick_task(void *arg)
    (void)arg;
    lv_tick_inc(10);
 }
-SemaphoreHandle_t xGuiSemaphore;
+SemaphoreHandle_t xGuiSemaphore;// 创建互斥信号句柄
 
 void gui_task(void *arg)
 {

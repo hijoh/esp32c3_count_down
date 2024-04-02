@@ -2,16 +2,43 @@
 // #include "main.h"
 #include "mqtt.h"
 #include "bsp_gpio.h"
+#include "esp_rom_md5.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "dht11.h"
 #include <stdbool.h>
+#include "mbedtls/md5.h"
+#include "cJSON.h"
 
 static const char *TAG = "mqtt";
 esp_mqtt_client_handle_t client = NULL;
 bool mqtt_connected = false;
 
+char user_id[13];
+char topic[100];
+
 static void log_error_if_nonzero(const char * message, int error_code);
+
+// 生成MD5哈希
+static void generate_md5_hash(char *input, char output[33]) {
+    unsigned char digest[16];
+    mbedtls_md5_context ctx;
+    mbedtls_md5_init(&ctx);
+    mbedtls_md5_starts(&ctx);
+    mbedtls_md5_update(&ctx, (unsigned char *)input, strlen(input));
+    mbedtls_md5_finish(&ctx, digest);
+    mbedtls_md5_free(&ctx);
+
+    for(int i = 0; i < 16; ++i)
+        sprintf(&output[i*2], "%02x", (unsigned int)digest[i]);
+}
+
+// 拼接字符串和设备ID，然后生成MD5哈希
+static void generate_device_hash(char *device_id, char output[33]) {
+    char input[64] = "openiitasecret01";
+    strcat(input, device_id);
+    generate_md5_hash(input, output);
+}
 
 void publish_tem_hum_task(void *pvParameters)
 {
@@ -59,7 +86,7 @@ void publish_tem_hum_task(void *pvParameters)
     }
 }
 
-void reset_wifi() {
+static void reset_wifi() {
     // 停止MQTT连接（如果正在连接）
     esp_mqtt_client_stop(client);
 
@@ -86,11 +113,17 @@ void reset_wifi() {
 void get_mac_address(char *mac_addr) {
     uint8_t mac[6];
     esp_wifi_get_mac(WIFI_IF_STA, mac); // 获取STA模式的MAC地址
-
-    sprintf(mac_addr, "2shFQFP5hpmPHYSr_%02X%02X%02X%02X%02X%02X_esp32s3", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    sprintf(mac_addr, "openiitagateway01_%02X%02X%02X%02X%02X%02X_C3", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    // sprintf(mac_addr, "%02X%02X%02X%02X%02X%02X_S3", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
-void erase_wifi_config() {
+void get_user_id(char *user_id) {
+    uint8_t mac[6];
+    esp_wifi_get_mac(WIFI_IF_STA, mac); // 获取STA模式的MAC地址
+    sprintf(user_id, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+static void erase_wifi_config() {
     nvs_handle_t my_handle;
     esp_err_t err;
 
@@ -130,8 +163,9 @@ void Publisher_Task(void *params)
   {
     if(mqtt_connected)
     {
+        
         // ESP_LOGI(TAG, "mqtt_connect: %d", mqtt_connected);
-        esp_mqtt_client_publish(client, "/topic/test3", "Helllo World", 0, 0, 0);
+        // esp_mqtt_client_publish(client, "/topic/test3", "Helllo World", 0, 0, 0);
     }
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
@@ -151,6 +185,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     // esp_mqtt_client_handle_t client = event->client;
     int msg_id;
+    
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED:
@@ -162,64 +197,75 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "sent publish successful, msg_id=%d/n", msg_id);
 
         msg_id = esp_mqtt_client_subscribe(client, "/iot/2742/de", 0);
-        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
+        // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
 
-        msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id); 
-        msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-        ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d/n", msg_id);
+        // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
+        // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id); 
+        // msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
+        // ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d/n", msg_id);
         msg_id = esp_mqtt_client_subscribe(client, "/topic/t_h", 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
-        xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 5, NULL);    
+
+
+        // sprintf(topic, "/sys/openiitagateway01/%s/c/#",  user_id);
+        sprintf(topic, "/openiitagateway01/%s/c/#",  user_id);
+        msg_id = esp_mqtt_client_subscribe(client, topic, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d/n", msg_id);
+        
         // xTaskCreate(Publisher_Task, "Publisher_Task", 1024 * 5, NULL, 5, NULL);
         break;
     case MQTT_EVENT_DISCONNECTED:
-        mqtt_connected = false;  
-        // led_off();
-        esp_mqtt_client_start(client);// 尝试重新连接
-        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        mqtt_connected = false; 
+        static int reconnect_attempts = 0; 
+        led_off();
+        esp_err_t err = esp_mqtt_client_reconnect(client);
+        if (err != ESP_OK) {
+            // mqtt_start();
+            reconnect_attempts++; // Increment the counter if reconnection fails
+        if (reconnect_attempts >= 5) { // Check if the counter has reached 5
+            ESP_LOGI(TAG, "Reconnect error! Restarting after 5 failed attempts.");
+            // esp_restart();
+        } else {
+            ESP_LOGI(TAG, "Reconnect error!mqtt_start()");
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");}
         break;
+        
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", "data", 0, 0, 0);
-        msg_id = esp_mqtt_client_publish(client, "/topic/test3", "data", 0, 0, 0);
-        ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+        // msg_id = esp_mqtt_client_publish(client, "/iot/2742/de", "data", 0, 0, 0);
+        // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-        led_status();
+        // led_status();
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
-        // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 5, NULL);
-        // xTaskCreate(dht11_task, "dht11_task", 2048, (void*)client, 5, NULL);
-         //控制LED
-            if(memcmp(event->data,"On",event->data_len)==0)
-            {
-                led_on();
-            }else if(memcmp(event->data,"Off",event->data_len)==0)
-            {
-                led_off();
-            }else if (memcmp(event->data, "clean", event->data_len) == 0)
-                {                    
-                    reset_wifi();// 重置wifi
-                } 
-            else if (memcmp(event->data, "data_3", event->data_len) == 0)
-                {                    
-                    led_status();
-                // } 
-            // else if (strncmp(event->topic, "/topic/t_h", event->topic_len) == 0){
-            //     char* temp_value = malloc(event->data_len+1);
-            //     memcpy(temp_value, event->data, event->data_len);
-            //     temp_value[event->data_len] = '\0';
-            //     printf("Received data on /topic/t_h: %s\n", temp_value);
-            //     free(temp_value);
-            // }
+
+        // char* data_str = malloc(event->data_len + 1);
+        // memcpy(data_str, event->data, event->data_len);
+        // data_str[event->data_len] = '\0';
+
+        // cJSON *data_json = cJSON_Parse(data_str);
+        // if (data_json == NULL) {
+        //     printf("Error: Could not parse JSON data.\n");
+        // } else {
+        //     cJSON *led_ctr = cJSON_GetObjectItemCaseSensitive(data_json, "LED_CTR");
+        //     if (cJSON_IsTrue(led_ctr)) {
+        //         led_on();
+        //     } else if (cJSON_IsFalse(led_ctr)) {
+        //         led_off();
+        //     }
+        //     cJSON_Delete(data_json);
+        // }
+        // free(data_str);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -235,9 +281,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
     }
-    
-
-}
 }
 
 static void log_error_if_nonzero(const char * message, int error_code)
@@ -255,37 +298,42 @@ static void log_error_if_nonzero(const char * message, int error_code)
 *********************************************************************************************************
 */
 void mqtt_start(void)
-{
-    char device_id[32];
-    // char client_id[40];
+{   char device_id[35];
     get_mac_address(device_id);
-    // sprintf(client_id, "%s_ESP32S3", device_id);
+    get_user_id(user_id);
+    char password[33];
+    generate_device_hash(device_id,password);
+
     esp_mqtt_client_config_t mqtt_cfg = {
-        // .broker.address.uri  = "mqtt://yuwawa.vip",
+        .broker.address.uri  = "mqtt://admin.yuwawa.vip",
         // .broker.address.uri  = "mqtt://mq.tongxinmao.com",
         // .broker.address.port = 18830,
-        
         // .broker.address.uri  = "mqtt://t.yoyolife.fun",
         // .broker.address.port = 1883,
         // .credentials.client_id = "5ddad3c8554e8f74fd3f96ff959dd894",
         // .credentials.username = "5ddad3c8554e8f74fd3f96ff959dd894",
         // .credentials.authentication.password = "123456",
+        // .broker.address.uri  = "mqtt://admin.yuwawa.vip",
+        // .broker.address.port = 1883,
 
-        .broker.address.uri  = "mqtt://admin.yuwawa.vip",
+        // .broker.address.uri  = "mqtt://192.168.3.22",
         .broker.address.port = 1883,
+        // .credentials.username = user_id,
+        // .credentials.authentication.password = password,
+
         .credentials.client_id = device_id,
         // .credentials.username = "test1",
         // .credentials.authentication.password = "openiitasecret0",
         
         // .broker.address.uri  = "mqtt://broker.emqx.io",
         // .broker.address.port = 1883,
-        // .credentials.client_id = device_id,
-        // .credentials.client_id = "5ddad3c8554e8f74fd3f96ff959dd894",
-        // .credentials.username = "5ddad3c8554e8f74fd3f96ff959dd894",
-        // .credentials.authentication.password = "123456",
-        // .credentials.client_id = "esp32_client", // 客户端ID，通常需要唯一
+ 
         .session.keepalive = 60, // 心跳保活间隔
     };
+    // printf("md5_hash:[%s]\n",md5_hash);
+    printf("userid:[%s]\n", user_id);
+    printf("deviceid:[%s]\n", device_id);
+    printf("password:[%s]\n", password);
     
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
@@ -299,3 +347,5 @@ void mqtt_start(void)
     }
     // ESP_LOGI(TAG, "mqtt_is_running");
 }
+
+

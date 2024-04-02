@@ -673,9 +673,9 @@ void app_main(void)
     // DHT11_Init();
     // DHT11_Start();
     BLUFI_INFO("BLUFI VERSION %04x\n", esp_blufi_get_version());//打印BLUFI版本信息
-    xTaskCreate(&wifi_task, "wifi_task", 1024*8, NULL, 4, NULL);
+    // xTaskCreate(&wifi_task, "wifi_task", 1024*8, NULL, 4, NULL);
     xTaskCreate(hello_task, "hello_task", 4096, NULL, 4, NULL);
-    
+    xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 5, NULL);    
     // xTaskCreate(Publisher_Task, "Publisher_Task", 1024 * 5, NULL, 5, NULL);
     
     // xTaskCreate(&button_check_task, "button_check_task", 2048, NULL, 5, NULL);

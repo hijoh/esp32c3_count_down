@@ -30,7 +30,7 @@
 #include "esp_blufi.h"
 #include "mqtt.h"
 #include "bsp_gpio.h"
-#include "dht11.h"
+#include "aht20.h"
 #include "sdkconfig.h"
 
 #include "freertos/semphr.h"
@@ -668,7 +668,7 @@ void app_main(void)
     }
     
     // mqtt_start();// 启动mqtt
-    DHT11_init(GPIO_NUM_9);
+    // DHT11_init(GPIO_NUM_9);
     // global_message_mutex = xSemaphoreCreateMutex();//初始化global_message_mutex
     // DHT11_Init();
     // DHT11_Start();
@@ -684,5 +684,11 @@ void app_main(void)
     // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, NULL, 5, NULL);
     // xTaskCreate(&dht11_task, "dht11_task", configMINIMAL_STACK_SIZE * 4, NULL, 6, NULL);
     // xTaskCreate(dht11_task, "dht11_task", 2048, (void*)client, 5, NULL);
+
+    aht20_init(14,13); //22=clock 21=data
+    i2c_setup();
+    check_calibration();
+    
+    xTaskCreate(&aht20_read_measures, "task_read_ath20",  10096, NULL, 0, NULL);
 
 }

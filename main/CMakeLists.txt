@@ -7,8 +7,9 @@ idf_component_register(SRCS ${SOURCES_C} ${SOURCES_CPP}
                             "blufi_init.c"
                             "mqtt.c"
                             "bsp_gpio.c"
-                            "dht11.c" "hello_task.c"
-                    INCLUDE_DIRS "." "components" "fonts"  "screens" "esp_gui" )
+                             "hello_task.c"
+                             "components/t_h/aht20.c"
+                    INCLUDE_DIRS "." "components" "components/t_h/include" "fonts"  "screens" "esp_gui" )
 
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_HOR_RES_MAX=320")
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_VER_RES_MAX=240")

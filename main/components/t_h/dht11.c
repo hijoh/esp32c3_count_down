@@ -5,6 +5,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "dht11.h"
+#include "mqtt.h"
+#include "bsp_gpio.h"
+#include "esp_log.h"
+
+#define aht20_addr 0x38
+static const char *TAG = "DHT11";
 
 static gpio_num_t dht_gpio;
 static int64_t last_read_time = -2000000;
@@ -98,5 +104,51 @@ struct dht11_reading DHT11_read() {
         return last_read;
     } else {
         return last_read = _crcError();
+    }
+}
+
+void publish_tem_hum_task(void *pvParameters)
+{
+    esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t) pvParameters;
+    // char tempStr[10];
+    // char humiStr[10];
+    // static uint8_t lastTemp = 0;
+    // static uint8_t lastHumi = 0;
+
+    // 等待MQTT客户端连接到服务器
+    while (!mqtt_connected) {
+        vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
+    }
+    char msg[100];
+    while(1)
+    {       
+    struct dht11_reading last_reading = {0, 0, 0};
+
+    while(1)
+    {
+        struct dht11_reading reading = DHT11_read();
+        if(reading.status == DHT11_OK && (reading.temperature != last_reading.temperature || reading.humidity != last_reading.humidity))
+        {
+            // 如果温度为44，湿度为122，则忽略这个值
+            if(reading.temperature > 40 || reading.humidity > 100)
+            // if(reading.temperature == 40 && reading.humidity == 100)
+            {
+                ESP_LOGI(TAG, "DHT11_ReadError");
+                continue;
+            }
+            last_reading = reading;
+            snprintf(msg, sizeof(msg), "Temperature: %d C, Humidity: %d %%", reading.temperature, reading.humidity);
+
+            // 等待MQTT客户端连接到服务器
+            while (!mqtt_connected) {
+                vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
+            }
+
+            // 发布温度和湿度数据
+            esp_mqtt_client_publish(client, "/topic/t_h", msg, 0, 0, 1);
+            led_status();
+        }
+        vTaskDelay(5000 / portTICK_PERIOD_MS); // 每5秒读取并发布一次
+    }
     }
 }

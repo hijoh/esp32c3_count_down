@@ -14,18 +14,11 @@
 #include <string.h>
 #include <time.h>
 #include "cJSON.h"
-// #include "nvs_flash.h"
-// #include "esp_event.h"
-// #include "esp_netif.h"
-// #include "esp_wifi.h"
 #include "esp_log.h"
 #include "esp_system.h"
-// #include "esp_now.h"
 #include "esp_crc.h"
-// #include "espnow_example.h"
 #include "mqtt.h"
-// #include "mqtt_client.h"
-// #include "esp_wifi.h"
+
 
 static const char *TAG = "Button1_Callback";
 // extern esp_mqtt_client_handle_t client;

@@ -5,7 +5,6 @@
 #include "esp_rom_md5.h"
 #include "nvs.h"
 #include "nvs_flash.h"
-#include "dht11.h"
 #include <stdbool.h>
 #include "mbedtls/md5.h"
 #include "cJSON.h"
@@ -38,52 +37,6 @@ static void generate_device_hash(char *device_id, char output[33]) {
     char input[64] = "openiitasecret01";
     strcat(input, device_id);
     generate_md5_hash(input, output);
-}
-
-void publish_tem_hum_task(void *pvParameters)
-{
-    esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t) pvParameters;
-    // char tempStr[10];
-    // char humiStr[10];
-    // static uint8_t lastTemp = 0;
-    // static uint8_t lastHumi = 0;
-
-    // 等待MQTT客户端连接到服务器
-    while (!mqtt_connected) {
-        vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
-    }
-    char msg[100];
-    while(1)
-    {       
-    struct dht11_reading last_reading = {0, 0, 0};
-
-    while(1)
-    {
-        struct dht11_reading reading = DHT11_read();
-        if(reading.status == DHT11_OK && (reading.temperature != last_reading.temperature || reading.humidity != last_reading.humidity))
-        {
-            // 如果温度为44，湿度为122，则忽略这个值
-            if(reading.temperature > 40 || reading.humidity > 100)
-            // if(reading.temperature == 40 && reading.humidity == 100)
-            {
-                ESP_LOGI(TAG, "DHT11_ReadError");
-                continue;
-            }
-            last_reading = reading;
-            snprintf(msg, sizeof(msg), "Temperature: %d C, Humidity: %d %%", reading.temperature, reading.humidity);
-
-            // 等待MQTT客户端连接到服务器
-            while (!mqtt_connected) {
-                vTaskDelay(100 / portTICK_PERIOD_MS); // 每100ms检查一次
-            }
-
-            // 发布温度和湿度数据
-            esp_mqtt_client_publish(client, "/topic/t_h", msg, 0, 0, 1);
-            led_status();
-        }
-        vTaskDelay(5000 / portTICK_PERIOD_MS); // 每5秒读取并发布一次
-    }
-    }
 }
 
 static void reset_wifi() {
@@ -157,6 +110,7 @@ static void erase_wifi_config() {
         nvs_close(my_handle);
     }
 }
+
 void Publisher_Task(void *params)
 {
   while (true)
@@ -252,7 +206,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         // char* data_str = malloc(event->data_len + 1);
         // memcpy(data_str, event->data, event->data_len);
         // data_str[event->data_len] = '\0';
-
         // cJSON *data_json = cJSON_Parse(data_str);
         // if (data_json == NULL) {
         //     printf("Error: Could not parse JSON data.\n");
@@ -274,7 +227,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
             log_error_if_nonzero("captured as transport's socket errno",  event->error_handle->esp_transport_sock_errno);
             ESP_LOGI(TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
-
         }
         break;
     default:

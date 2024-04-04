@@ -15,7 +15,8 @@
         "ui.h": "c",
         "gui_task.h": "c",
         "ui_helpers.h": "c",
-        "hello_task.h": "c"
+        "hello_task.h": "c",
+        "stdbool.h": "c"
     },
 
 

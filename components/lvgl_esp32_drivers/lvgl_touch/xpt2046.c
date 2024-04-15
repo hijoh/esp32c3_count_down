@@ -23,6 +23,17 @@
 #define CMD_Z1_READ 0b10110000
 #define CMD_Z2_READ 0b11000000
 
+static bool xpt2046_enabled = true;
+void xpt2046_enable(void)
+{
+    xpt2046_enabled = true;
+}
+
+void xpt2046_disable(void)
+{
+    xpt2046_enabled = false;
+}
+
 /**********************
  *      TYPEDEFS
  **********************/
@@ -60,7 +71,7 @@ uint8_t avg_last;
 void xpt2046_init(void)
 {
     ESP_LOGI(TAG, "XPT2046 Initialization");
-
+xpt2046_disable();
 #if XPT2046_TOUCH_IRQ || XPT2046_TOUCH_IRQ_PRESS
     gpio_config_t irq_config = {
         .pin_bit_mask = BIT64(XPT2046_IRQ),
@@ -82,6 +93,11 @@ void xpt2046_init(void)
  */
 bool xpt2046_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
 {
+     if (!xpt2046_enabled) {
+     data->state = LV_INDEV_STATE_REL;
+     return false;
+        }
+        
     static int16_t last_x = 0;
     static int16_t last_y = 0;
     bool valid = false;
@@ -94,19 +110,19 @@ bool xpt2046_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
 
         x = xpt2046_cmd(CMD_X_READ);
         y = xpt2046_cmd(CMD_Y_READ);
-        ESP_LOGI(TAG, "P(%d,%d)", x, y);
+        // ESP_LOGI(TAG, "P(%d,%d)", x, y);
 
         /*Normalize Data back to 12-bits*/
         x = x >> 4;
         y = y >> 4;
-        ESP_LOGI(TAG, "P_norm(%d,%d)", x, y);
+        // ESP_LOGI(TAG, "P_norm(%d,%d)", x, y);
         
         xpt2046_corr(&x, &y);
         xpt2046_avg(&x, &y);
         last_x = x;
         last_y = y;
 
-        ESP_LOGI(TAG, "x = %d, y = %d", x, y);
+        // ESP_LOGI(TAG, "x = %d, y = %d", x, y);
     }
     else
     {
@@ -218,3 +234,22 @@ static void xpt2046_avg(int16_t * x, int16_t * y)
     (*x) = (int32_t)x_sum / avg_last;
     (*y) = (int32_t)y_sum / avg_last;
 }
+
+// void xpt2046_touch_enable(bool enable)
+// {
+//     uint8_t cmd[2] = { 0 };
+
+//     if (enable) {
+//         // Send command to enable touch
+//         cmd[0] = 0x80;  // Command byte
+//         cmd[1] = 0x00;  // Data byte (dummy)
+
+//         tp_spi_write_reg(cmd, 2);
+//     } else {
+//         // Send command to disable touch
+//         cmd[0] = 0x81;  // Command byte
+//         cmd[1] = 0x00;  // Data byte (dummy)
+
+//         tp_spi_write_reg(cmd, 2);
+//     }
+// }

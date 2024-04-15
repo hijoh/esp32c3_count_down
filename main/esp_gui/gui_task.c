@@ -13,8 +13,10 @@
 #include "../lvgl/lvgl.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "key.h"
 
-static void lv_tick_task(void *arg)
+static const char *TAG = "gui_task";  // 定义标签
+void lv_tick_task(void *arg)
 {
    (void)arg;
    lv_tick_inc(10);
@@ -67,16 +69,19 @@ void gui_task(void *arg)
    // lv_demo_widgets();
    //    lv_demo_music();
    // lv_demo_benchmark();
-   while (1)
+
+      while (1)
    {
-      /* Delay 1 tick (assumes FreeRTOS tick is 10ms */
+       //Delay 1 tick (assumes FreeRTOS tick is 10ms 
       vTaskDelay(pdMS_TO_TICKS(10));
 
-      /* Try to take the semaphore, call lvgl related function on success */
+      // Try to take the semaphore, call lvgl related function on success 
       if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
       {
          lv_timer_handler();
-         xSemaphoreGive(xGuiSemaphore);
+         xSemaphoreGive(xGuiSemaphore);vTaskDelay(pdMS_TO_TICKS(10));
       }
-   }
+      }
+            
+
 }

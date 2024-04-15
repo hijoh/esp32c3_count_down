@@ -49,6 +49,8 @@ extern "C" {
  **********************/
 void xpt2046_init(void);
 bool xpt2046_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
+void xpt2046_disable(void);
+void xpt2046_enable(void);
 
 /**********************
  *      MACROS

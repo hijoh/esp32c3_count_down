@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/sam/esp/get-start/kaiyuan/blufi_test",
+    "cmake.sourceDirectory": "/home/sam/esp/get-start/kaiyuan/blufi_mqtt_S3",
     "files.associations": {
         "string.h": "c",
         "blufi_example.h": "c",
@@ -16,7 +16,11 @@
         "gui_task.h": "c",
         "ui_helpers.h": "c",
         "hello_task.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "aht20.h": "c",
+        "key.h": "c",
+        "encoder.h": "c",
+        "st7789.h": "c"
     },
 
 

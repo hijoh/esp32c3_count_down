@@ -14,6 +14,7 @@
 
 #include "disp_spi.h"
 #include "driver/gpio.h"
+#include <stdbool.h>
 
 /*********************
  *      DEFINES

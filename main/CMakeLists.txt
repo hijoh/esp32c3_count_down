@@ -9,7 +9,9 @@ idf_component_register(SRCS ${SOURCES_C} ${SOURCES_CPP}
                             "bsp_gpio.c"
                              "hello_task.c"
                              "components/t_h/aht20.c"
-                    INCLUDE_DIRS "." "components" "components/t_h/include" "fonts"  "screens" "esp_gui" )
+                             "components/EC11/encoder.c"
+                             "components/EC11/key.c"
+                    INCLUDE_DIRS "." "components" "components/t_h/include" "components/EC11/include""fonts"  "screens" "esp_gui" )
 
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_HOR_RES_MAX=320")
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_VER_RES_MAX=240")

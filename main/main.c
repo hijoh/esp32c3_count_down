@@ -46,6 +46,8 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "hello_task.h"
+#include "key.h"
+#include "encoder.h"
 
 #define EXAMPLE_WIFI_CONNECTION_MAXIMUM_RETRY CONFIG_EXAMPLE_WIFI_CONNECTION_MAXIMUM_RETRY
 #define EXAMPLE_INVALID_REASON                255
@@ -626,7 +628,9 @@ void wifi_task(void *pvParameters) {
 
 void app_main(void)
 {
+    // st7789_enable_backlight(false);
     xTaskCreatePinnedToCore(gui_task, "gui task", 1024 * 5, NULL, 15, NULL, 1);
+
     esp_rom_gpio_pad_select_gpio(GPIO_NUM_2);
     gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_2, 1);
@@ -688,7 +692,10 @@ void app_main(void)
     aht20_init(14,13); //22=clock 21=data
     i2c_setup();
     check_calibration();
-    
+    key_init();
+    encoder_init();
+    xTaskCreate(key_read_task, "key_read_task", 2048, NULL, 6, NULL);
+    xTaskCreate(update_display_task, "Update Display Task", 2048, NULL, 5, NULL);
     xTaskCreate(&aht20_read_measures, "task_read_ath20",  10096, NULL, 0, NULL);
 
 }

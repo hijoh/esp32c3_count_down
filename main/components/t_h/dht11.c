@@ -150,5 +150,6 @@ void publish_tem_hum_task(void *pvParameters)
         }
         vTaskDelay(5000 / portTICK_PERIOD_MS); // 每5秒读取并发布一次
     }
+    vTaskDelay(pdMS_TO_TICKS(50)); // 等待一段时间，以允许其他任务运行
     }
 }

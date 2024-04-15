@@ -94,11 +94,11 @@ void aht20_read_measures(void *ignore){
         // aht20_data_t.temperature = roundf(aht20_data_t.temperature * 100.0) / 100.0;
         // aht20_data_t.rel_humidity = roundf(aht20_data_t.rel_humidity * 100.0) / 100.0;
 
-        printf("Temperature is %3.2f\n", (float)temp);
-        printf("Humidity is %3.2f\n", (float)rh);
-
-        printf("Temperature11 is %3.2f\n", aht20_data_t.temperature);
-        printf("Humidity11 is %3.2f\n", aht20_data_t.rel_humidity);
+        // printf("Temperature is %3.2f\n", (float)temp);
+        // printf("Humidity is %3.2f\n", (float)rh);
+// 
+        // printf("Temperature11 is %3.2f\n", aht20_data_t.temperature);
+        // printf("Humidity11 is %3.2f\n", aht20_data_t.rel_humidity);
 
             // 检查MQTT是否已连接
         if (mqtt_connected) {
@@ -119,7 +119,7 @@ void aht20_read_measures(void *ignore){
 
             // 发送JSON字符串到MQTT服务器
             int msg_id = esp_mqtt_client_publish(client, "/topic/t_h", json_string, 0, 0, 0);
-            ESP_LOGI(TAG, "aht20_published_sucsessful, msg_id=%d", msg_id);
+            // ESP_LOGI(TAG, "aht20_published_sucsessful, msg_id=%d", msg_id);
 
             // 释放JSON对象和字符串
             cJSON_Delete(json_data);

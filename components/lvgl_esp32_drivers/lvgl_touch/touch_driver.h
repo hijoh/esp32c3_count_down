@@ -44,7 +44,7 @@ extern "C" {
  * GLOBAL PROTOTYPES
  **********************/
 void touch_driver_init(void);
-
+void xpt2046_touch_enable(bool enable);
 #if LVGL_VERSION_MAJOR >= 8
 void touch_driver_read(lv_indev_drv_t *drv, lv_indev_data_t *data);
 #else

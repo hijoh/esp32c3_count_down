@@ -42,7 +42,7 @@ extern "C" {
  **********************/
 
 void ra8875_touch_init(void);
-void ra8875_touch_enable(bool enable);
+// void ra8875_touch_enable(bool enable);
 bool ra8875_touch_read(lv_indev_drv_t * drv, lv_indev_data_t * data);
 
 /**********************

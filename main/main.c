@@ -697,5 +697,5 @@ void app_main(void)
     xTaskCreate(key_read_task, "key_read_task", 2048, NULL, 6, NULL);
     xTaskCreate(update_display_task, "Update Display Task", 2048, NULL, 5, NULL);
     xTaskCreate(&aht20_read_measures, "task_read_ath20",  10096, NULL, 0, NULL);
-
+    xTaskCreate(&timer_task, "timer_task", 2048, NULL, 5, NULL);
 }

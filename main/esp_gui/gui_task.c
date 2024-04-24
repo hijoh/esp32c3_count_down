@@ -79,7 +79,8 @@ void gui_task(void *arg)
       if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
       {
          lv_timer_handler();
-         xSemaphoreGive(xGuiSemaphore);vTaskDelay(pdMS_TO_TICKS(10));
+         xSemaphoreGive(xGuiSemaphore);
+         vTaskDelay(pdMS_TO_TICKS(10));
       }
       }
             

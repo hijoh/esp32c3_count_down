@@ -31,7 +31,8 @@ extern "C" {
 #include "mqtt.h"
 #include "bsp_gpio.h"
 
-extern void hello_task(void * parm);
+void hello_task(void * parm);
+void timer_task(void *pvParameter);
 extern EventGroupHandle_t hello_task_event_group;
 #ifdef __cplusplus
 }

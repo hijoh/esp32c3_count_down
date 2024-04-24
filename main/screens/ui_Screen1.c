@@ -73,8 +73,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_border_color(ui_TextArea1, lv_color_hex(0x8F8F8F), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_TextArea1, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-
-
     ui_Label5 = lv_label_create(ui_Panel2);
     lv_obj_set_width(ui_Label5, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label5, LV_SIZE_CONTENT);    /// 1
@@ -92,6 +90,33 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_Label2, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label2, "PRESS KEY");
     lv_obj_set_style_text_font(ui_Label2, &ui_font_stxhei16, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label_t1 = lv_label_create(ui_Panel2);
+    lv_obj_set_width(ui_Label_t1, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label_t1, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label_t1, 100);
+    lv_obj_set_y(ui_Label_t1, -40);
+    lv_obj_set_align(ui_Label_t1, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label_t1, "#");
+    lv_obj_set_style_text_font(ui_Label_t1, &ui_font_stxhei16, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label_t2 = lv_label_create(ui_Panel2);
+    lv_obj_set_width(ui_Label_t2, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label_t2, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label_t2, 100);
+    lv_obj_set_y(ui_Label_t2, -60);
+    lv_obj_set_align(ui_Label_t2, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label_t2, "#");
+    lv_obj_set_style_text_font(ui_Label_t2, &ui_font_stxhei16, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label_t3 = lv_label_create(ui_Panel2);
+    lv_obj_set_width(ui_Label_t3, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label_t3, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label_t3, 100);
+    lv_obj_set_y(ui_Label_t3, -80);
+    lv_obj_set_align(ui_Label_t3, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label_t3, "#");
+    lv_obj_set_style_text_font(ui_Label_t3, &ui_font_stxhei16, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label4 = lv_label_create(ui_Panel2);
     lv_obj_set_width(ui_Label4, LV_SIZE_CONTENT);   /// 1

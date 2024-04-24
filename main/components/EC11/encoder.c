@@ -11,8 +11,8 @@
 #include "key.h"
 // #include "font.h"
 #include "ui.h"
-#include "driver/gpio.h"
 #include "../lvgl/lvgl.h"
+#include "driver/gpio.h"
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
 

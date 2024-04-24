@@ -1,19 +1,10 @@
-/*
-*********************************************************************************************************
-*
-*	模块名称 : 启动任务
-*	文件名称 : hello_task.c
-*	版    本 : V1.0
-*	说    明 : 
-*   联系方式  ：嘉友创-小步（微信：15962207161）
-*
-*	修改记录 :
-*	版本号          日期        		作者     		说明
-*	V1.0           2022-09-08 		  DOUBLE  		 正式发布
-*********************************************************************************************************
-*/
+
 // #include "main.h"
 #include "hello_task.h"
+#include "ui.h"
+#include "../lvgl/lvgl.h"
+
+#define STORAGE_NAMESPACE "storage"
 
 static const char *TAG = "helloTask";
 
@@ -56,3 +47,54 @@ void hello_task(void * parm)
     }
 }
 
+void timer_task(void *pvParameter)
+{
+    nvs_handle_t my_handle;
+    esp_err_t err;
+    uint32_t sec = 0;
+    uint32_t sec1 = 0;
+    uint32_t sec2 = 0;
+    // uint32_t t202 = 0;
+
+    // Open
+    err = nvs_open(STORAGE_NAMESPACE, NVS_READWRITE, &my_handle);
+    if (err != ESP_OK) {
+        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    } else {
+        // Initialize sec to 0
+        // err = nvs_set_u32(my_handle, "sec", 0);
+        // if (err != ESP_OK) {
+        //     printf("Error (%s) setting NVS handle!\n", esp_err_to_name(err));
+        // }
+
+        // Read
+        err = nvs_get_u32(my_handle, "sec", &sec);
+        switch (err) {
+            case ESP_OK:
+                printf("sec = %ld\n", sec);
+                break;
+            case ESP_ERR_NVS_NOT_FOUND:
+                printf("The value is not initialized yet!\n");
+                break;
+            default :
+                printf("Error (%s) reading!\n", esp_err_to_name(err));
+        }
+
+        // Update sec every second
+        while (1) {
+            sec++;
+            sec1 = sec / 60;
+            sec2 = sec / 3600;
+            // if (sec % 60 == 0) {
+            //     sec1++;
+            // }
+            err = nvs_set_u32(my_handle, "sec", sec);
+            printf("sec = %ld\n", sec);
+            lv_label_set_text_fmt(ui_Label_t1, "sec: %ld", sec); // 更新标签的文本
+            lv_label_set_text_fmt(ui_Label_t2, "min: %ld", sec1); // 更新标签的文本
+            lv_label_set_text_fmt(ui_Label_t3, "hour: %ld", sec2); // 更新标签的文本
+            nvs_commit(my_handle);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    }
+}

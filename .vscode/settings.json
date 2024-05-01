@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/sam/esp/get-start/kaiyuan/blufi_mqtt_S3",
+    "cmake.sourceDirectory": "/Users/ruan/esp/important_project/count_down_c3",
     "files.associations": {
         "string.h": "c",
         "blufi_example.h": "c",

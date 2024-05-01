@@ -1,16 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2021-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
- */
-
-/****************************************************************************
-* This is a demo for bluetooth config wifi connection to ap. You can config ESP32 to connect a softap
-* or config ESP32 as a softap to be connected by other device. APP can be downloaded from github
-* android source code: https://github.com/EspressifApp/EspBlufi
-* iOS source code: https://github.com/EspressifApp/EspBlufiForiOS
-****************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,30 +11,26 @@
 #include "esp_log.h"
 #include "hal/gpio_types.h"
 #include "nvs_flash.h"
+
+#if CONFIG_BT_CONTROLLER_ENABLED || !CONFIG_BT_NIMBLE_ENABLED
 #include "esp_bt.h"
+#endif
+
 #include "esp_blufi_api.h"
 #include "blufi_example.h"
+
 #include "esp_blufi.h"
 #include "mqtt.h"
 #include "bsp_gpio.h"
-#include "aht20.h"
 #include "sdkconfig.h"
 
 #include "freertos/semphr.h"
-#include "lv_examples/src/lv_demo_widgets/lv_demo_widgets.h"
-#include "lv_examples/src/lv_demo_music/lv_demo_music.h"
-#include "lv_examples/src/lv_demo_benchmark/lv_demo_benchmark.h"
-#include "lvgl_helpers.h"
 #include "esp_freertos_hooks.h"
-#include "gui_task.h"
-#include "ui.h"
-#include "../lvgl/lvgl.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "hello_task.h"
-#include "key.h"
-#include "encoder.h"
+
 
 #define EXAMPLE_WIFI_CONNECTION_MAXIMUM_RETRY CONFIG_EXAMPLE_WIFI_CONNECTION_MAXIMUM_RETRY
 #define EXAMPLE_INVALID_REASON                255
@@ -304,94 +287,6 @@ static esp_blufi_callbacks_t example_callbacks = {
 
 static void example_event_callback(esp_blufi_cb_event_t event, esp_blufi_cb_param_t *param)
 {
-    /* actually, should post to blufi_task handle the procedure,
-     * now, as a example, we do it more simply 
-     switch (event) {
-    case ESP_BLUFI_EVENT_INIT_FINISH:
-        // BLUFI 模块初始化完成事件
-        break;
-    case ESP_BLUFI_EVENT_DEINIT_FINISH:
-        // BLUFI 模块反初始化完成事件
-        break;
-    case ESP_BLUFI_EVENT_BLE_CONNECT:
-        // BLE 连接建立事件
-        break;
-    case ESP_BLUFI_EVENT_BLE_DISCONNECT:
-        // BLE 连接断开事件
-        break;
-    case ESP_BLUFI_EVENT_SET_WIFI_OPMODE:
-        // 设置 Wi-Fi 工作模式事件
-        break;
-    case ESP_BLUFI_EVENT_REQ_CONNECT_TO_AP:
-        // 请求连接到 Wi-Fi 接入点事件
-        break;
-    case ESP_BLUFI_EVENT_REQ_DISCONNECT_FROM_AP:
-        // 请求从当前连接的 Wi-Fi 接入点断开事件
-        break;
-    case ESP_BLUFI_EVENT_REPORT_ERROR:
-        // BLUFI 模块报告错误事件
-        break;
-    case ESP_BLUFI_EVENT_GET_WIFI_STATUS:
-        // 请求获取当前 Wi-Fi 连接状态事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SLAVE_DISCONNECT_BLE:
-        // GATT 连接关闭事件
-        break;
-    case ESP_BLUFI_EVENT_DEAUTHENTICATE_STA:
-        // STA 被取消认证事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_STA_BSSID:
-        // 接收到 STA 的 BSSID（MAC 地址）事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_STA_SSID:
-        // 接收到 STA 的 SSID（Wi-Fi 网络名称）事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_STA_PASSWD:
-        // 接收到 STA 的密码事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SOFTAP_SSID:
-        // 接收到 SoftAP 的 SSID（Wi-Fi 网络名称）事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SOFTAP_PASSWD:
-        // 接收到 SoftAP 的密码事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SOFTAP_MAX_CONN_NUM:
-        // 接收到 SoftAP 的最大连接数事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SOFTAP_AUTH_MODE:
-        // 接收到 SoftAP 的认证模式事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SOFTAP_CHANNEL:
-        // 接收到 SoftAP 的信道事件
-        break;
-    case ESP_BLUFI_EVENT_GET_WIFI_LIST:
-        // 请求获取可用的 Wi-Fi 网络列表事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_CUSTOM_DATA:
-        // 接收到自定义数据事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_USERNAME:
-        // 接收到用户名事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_CA_CERT:
-        // 接收到 CA（证书颁发机构）证书事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_CLIENT_CERT:
-        // 接收到客户端证书事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SERVER_CERT:
-        // 接收到服务器证书事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_CLIENT_PRIV_KEY:
-        // 接收到客户端私钥事件
-        break;
-    case ESP_BLUFI_EVENT_RECV_SERVER_PRIV_KEY:
-        // 接收到服务器私钥事件
-        break;
-    default:
-        break;
-}
-     */
     switch (event) {
     case ESP_BLUFI_EVENT_INIT_FINISH:
         BLUFI_INFO("BLUFI init finish\n");
@@ -576,66 +471,10 @@ void wifiEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, 
         xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
     }
 }
-void wifi_task(void *pvParameters) {
-    // bool is_initialized = false; // 添加一个标志位
-    // while (1) {
-    //     // 检查Wi-Fi连接状态
-    //     wifi_ap_record_t ap_info;
-    //     esp_err_t ret = esp_wifi_sta_get_ap_info(&ap_info);
-    //     if (ret == ESP_OK) {
-    //         ESP_LOGI(TAG, "Wi-Fi connected, SSID: %s", ap_info.ssid);
-    //         // 如果还没有初始化，就执行初始化操作
-    //         if (!is_initialized) {
-    //             // 初始化GPIO
-    //             bsp_gpio_init();
-    //             // 启动mqtt
-    //             mqtt_start();
-    //             is_initialized = true; // 标志位设为true，表示已经初始化过了
-    //         }
-    //     } else {
-    //         ESP_LOGI(TAG, "Wi-Fi not connected");
-    //         is_initialized = false; // 如果Wi-Fi断开，标志位设为false
-    //     }
-
-    //     vTaskDelay(pdMS_TO_TICKS(5000)); // 每隔5秒检查一次Wi-Fi连接状态
-    // }
-
-        // 创建事件组
-    wifi_event_group = xEventGroupCreate();
-
-    // 注册WiFi事件处理程序
-    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifiEventHandler, NULL);
-
-    // 配置WiFi连接和初始化
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
-    esp_wifi_set_mode(WIFI_MODE_STA);
-    esp_wifi_start();
-
-    // 等待WiFi成功连接的事件
-    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-
-    //WiFi连接成功后的处理逻辑
-    // bsp_gpio_init();
-    
-    while (1)
-    {
-        // 任务的主循环逻辑
-        // ESP_LOGI(TAG, "wifi_task_is_running");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-}
 
 void app_main(void)
 {
-    // st7789_enable_backlight(false);
-    xTaskCreatePinnedToCore(gui_task, "gui task", 1024 * 5, NULL, 15, NULL, 1);
-
-    esp_rom_gpio_pad_select_gpio(GPIO_NUM_2);
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_2, 1);
-
-    esp_err_t ret;
+      esp_err_t ret;
 
     // Initialize NVS
     ret = nvs_flash_init();
@@ -646,7 +485,7 @@ void app_main(void)
     ESP_ERROR_CHECK( ret );
 
     initialise_wifi();
-
+    // store_flag_1();
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));//释放经典蓝牙资源
 
     //初始化蓝牙控制器：创建一个esp_bt_controller_config_t类型的结构体bt_cfg，
@@ -677,25 +516,16 @@ void app_main(void)
     // DHT11_Init();
     // DHT11_Start();
     BLUFI_INFO("BLUFI VERSION %04x\n", esp_blufi_get_version());//打印BLUFI版本信息
-    // xTaskCreate(&wifi_task, "wifi_task", 1024*8, NULL, 4, NULL);
+
+    // aht20_init(14,13); //22=clock 21=data
+    // i2c_setup();
+    // check_calibration();
+    // key_init();
     xTaskCreate(hello_task, "hello_task", 4096, NULL, 4, NULL);
-    xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 5, NULL);    
-    // xTaskCreate(Publisher_Task, "Publisher_Task", 1024 * 5, NULL, 5, NULL);
-    
-    // xTaskCreate(&button_check_task, "button_check_task", 2048, NULL, 5, NULL);
-
-    // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 5, NULL);
-    // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, NULL, 5, NULL);
-    // xTaskCreate(&dht11_task, "dht11_task", configMINIMAL_STACK_SIZE * 4, NULL, 6, NULL);
-    // xTaskCreate(dht11_task, "dht11_task", 2048, (void*)client, 5, NULL);
-
-    aht20_init(14,13); //22=clock 21=data
-    i2c_setup();
-    check_calibration();
-    key_init();
-    encoder_init();
-    xTaskCreate(key_read_task, "key_read_task", 2048, NULL, 6, NULL);
-    xTaskCreate(update_display_task, "Update Display Task", 2048, NULL, 5, NULL);
-    xTaskCreate(&aht20_read_measures, "task_read_ath20",  10096, NULL, 0, NULL);
-    xTaskCreate(&timer_task, "timer_task", 2048, NULL, 5, NULL);
+    // encoder_init();
+    // xTaskCreate(publish_tem_hum_task, "publish_tem_hum_task", 2048, (void*)client, 2, NULL);    
+    // xTaskCreate(key_read_task, "key_read_task", 2048, NULL, 6, NULL);
+    // xTaskCreate(update_display_task, "Update Display Task", 2048, NULL, 3, NULL);
+    // xTaskCreate(aht20_read_measures, "task_read_ath20",  1024*3, NULL, 1, NULL);
+    // xTaskCreate(&timer_task, "timer_task", 2048, NULL, 5, NULL);
 }

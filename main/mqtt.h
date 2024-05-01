@@ -49,6 +49,13 @@ static void generate_device_hash(char *device_id, char output[33]);
 void get_mac_address(char *mac_addr);
 extern char topic[];
 extern char user_id[];
+extern uint32_t target_rec;
+void target_rec_commit();
+
+void display_target_rec();
+void machine_status();
+void store_flag_1(void);
+void store_flag_0(void);
 
 #ifdef __cplusplus
 }

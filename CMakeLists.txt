@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(COMPONENT_ADD_INCLUDEDIRS  "." )
 
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 add_compile_options(-fdiagnostics-color=always)
 project(blufi_demo)

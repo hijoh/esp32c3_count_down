@@ -6,12 +6,12 @@ idf_component_register(SRCS ${SOURCES_C} ${SOURCES_CPP}
                             "blufi_security.c"
                             "blufi_init.c"
                             "mqtt.c"
-                            "bsp_gpio.c"
-                             "hello_task.c"
-                             "components/t_h/aht20.c"
-                             "components/EC11/encoder.c"
-                             "components/EC11/key.c"
-                    INCLUDE_DIRS "." "components" "components/t_h/include" "components/EC11/include""fonts"  "screens" "esp_gui" )
+                            "./components/bsp_gpio/bsp_gpio.c"
+                             "./components/hello_task/hello_task.c"
+                            
 
-target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_HOR_RES_MAX=320")
-target_compile_definitions(${COMPONENT_LIB} PUBLIC "-DLV_VER_RES_MAX=240")
+                    INCLUDE_DIRS "." "components" "components/bsp_gpio/include" "components/hello_task/include")
+
+                    set(COMPONENT_REQUIRES blufi)
+                    set(COMPONENT_REQUIRES esp_timer)
+
